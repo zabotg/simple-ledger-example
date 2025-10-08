@@ -1,7 +1,7 @@
+import { ValidationError } from './errors';
+import type { AccountsRepository } from '../domain/accounts/accounts-repository';
 import type { Direction, Account } from '../domain/accounts/accounts-types';
 import type { Entry, Transaction } from '../domain/transactions/transactions-types';
-import { ValidationError } from './errors';
-import { AccountsRepository } from '../domain/accounts/accounts-repository';
 
 export const calculateBalanceImpact = (
   accountDirection: Direction,

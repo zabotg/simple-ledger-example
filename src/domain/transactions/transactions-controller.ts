@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
-import { TransactionsService } from './transactions-service';
+
 import { createTransactionSchema } from './transactions-schema';
+import { TransactionsService } from './transactions-service';
 
 export const registerTransactionsController = async (app: FastifyInstance) => {
   const service = new TransactionsService();

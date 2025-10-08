@@ -1,5 +1,5 @@
-import { Account } from "../src/domain/accounts/accounts-types";
-import { Entry } from "../src/domain/transactions/transactions-types";
+import type { Account } from "../src/domain/accounts/accounts-types";
+import type { Entry } from "../src/domain/transactions/transactions-types";
 import { applyLedgerEntryToAccount, calculateBalanceImpact, ensureTransactionIsBalanced } from "../src/shared/rules";
 
 describe('Ledger Rules', () => {

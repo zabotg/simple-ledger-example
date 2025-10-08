@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
-import { AccountsService } from './accounts-service';
+
 import { createAccountSchema } from './accounts-schema';
+import { AccountsService } from './accounts-service';
 
 export const registerAccountsController = async (app: FastifyInstance) => {
   const service = new AccountsService();

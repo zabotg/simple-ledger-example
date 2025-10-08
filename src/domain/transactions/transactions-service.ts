@@ -1,8 +1,10 @@
 import { randomUUID } from 'node:crypto';
-import { accountsRepository as defaultAccountsRepo, AccountsRepository } from '../accounts/accounts-repository';
+
 import { TransactionsRepository } from './transactions-repository';
-import { applyTransactionToAccounts } from '../../shared/rules';
 import type { CreateTransactionInput, Transaction } from './transactions-types';
+import { applyTransactionToAccounts } from '../../shared/rules';
+import { accountsRepository as defaultAccountsRepo } from '../accounts/accounts-repository';
+import type { AccountsRepository } from '../accounts/accounts-repository';
 
 export class TransactionsService {
   constructor(

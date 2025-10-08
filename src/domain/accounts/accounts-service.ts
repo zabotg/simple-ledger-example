@@ -1,6 +1,8 @@
 import { randomUUID } from 'node:crypto';
+
+import type { AccountsRepository } from './accounts-repository';
+import { accountsRepository as defaultAccountsRepo } from './accounts-repository';
 import type { Account, CreateAccountInput } from './accounts-types';
-import { accountsRepository as defaultAccountsRepo, AccountsRepository } from './accounts-repository';
 
 export class AccountsService {
   constructor(private readonly repo: AccountsRepository = defaultAccountsRepo) {}
