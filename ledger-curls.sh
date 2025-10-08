@@ -3,55 +3,57 @@ set -euo pipefail
 
 BASE_URL="${BASE_URL:-http://localhost:8080}"
 
-# Requirements
-command -v jq >/dev/null 2>&1 || { echo "jq is required but not installed."; exit 1; }
+# Check dependencies
+if ! command -v jq &>/dev/null; then
+  echo "Error: jq is not installed."
+  exit 1
+fi
+
+echo
+echo "Running Ledger API smoke test against $BASE_URL"
+echo "=============================================================="
 
 # Temp files
-CASH_JSON="$(mktemp)"
-LIAB_JSON="$(mktemp)"
-TX_JSON="$(mktemp)"
+CASH_JSON=$(mktemp)
+LIAB_JSON=$(mktemp)
+TX_JSON=$(mktemp)
 cleanup() { rm -f "$CASH_JSON" "$LIAB_JSON" "$TX_JSON"; }
 trap cleanup EXIT
 
-echo ""
-echo "Testing Ledger API on $BASE_URL"
-echo "----------------------------------------------------------"
-
-# 1 - Create debit account (Cash)
-echo "Creating debit account (Cash, balance 500)..."
-curl -sS -f -X POST "$BASE_URL/accounts" \
+# 1) Create Cash account
+echo
+echo "[1] Creating debit account (Cash, balance 500)..."
+curl -s -f -X POST "$BASE_URL/accounts" \
   -H "Content-Type: application/json" \
-  -d '{
-    "name": "Cash",
-    "direction": "debit",
-    "balance": 500
-  }' | tee "$CASH_JSON" | jq .
-CASH_ID="$(jq -r '.id' "$CASH_JSON")"
-echo "Cash account created: $CASH_ID"
-echo "----------------------------------------------------------"
+  -d '{"name":"Cash","direction":"debit","balance":500}' \
+  | tee "$CASH_JSON" | jq .
+CASH_ID=$(jq -r '.id' "$CASH_JSON")
+echo "=============================================================="
 
-# 2 - Create credit account (Liabilities)
-echo "Creating credit account (Liabilities, balance 200)..."
-curl -sS -f -X POST "$BASE_URL/accounts" \
+# 2) Create Liabilities account
+echo
+echo "[2] Creating credit account (Liabilities, balance 200)..."
+curl -s -f -X POST "$BASE_URL/accounts" \
   -H "Content-Type: application/json" \
-  -d '{
-    "name": "Liabilities",
-    "direction": "credit",
-    "balance": 200
-  }' | tee "$LIAB_JSON" | jq .
-LIAB_ID="$(jq -r '.id' "$LIAB_JSON")"
-echo "Liabilities account created: $LIAB_ID"
-echo "----------------------------------------------------------"
+  -d '{"name":"Liabilities","direction":"credit","balance":200}' \
+  | tee "$LIAB_JSON" | jq .
+LIAB_ID=$(jq -r '.id' "$LIAB_JSON")
+echo "=============================================================="
 
-# 3 - Fetch both accounts
-echo "Fetching accounts..."
-curl -sS -f "$BASE_URL/accounts/$CASH_ID" | jq .
-curl -sS -f "$BASE_URL/accounts/$LIAB_ID" | jq .
-echo "----------------------------------------------------------"
+# 3) List both accounts
+echo
+echo "[3] Fetching both accounts..."
+echo "Cash:"
+curl -s -f "$BASE_URL/accounts/$CASH_ID" | jq .
+echo
+echo "Liabilities:"
+curl -s -f "$BASE_URL/accounts/$LIAB_ID" | jq .
+echo "=============================================================="
 
-# 4 - Create a balanced transaction
-echo "Creating a balanced transaction: Pay down liabilities by 100..."
-curl -sS -f -X POST "$BASE_URL/transactions" \
+# 4) Balanced transaction
+echo
+echo "[4] Creating a balanced transaction: pay down liabilities by 100..."
+curl -s -f -X POST "$BASE_URL/transactions" \
   -H "Content-Type: application/json" \
   -d "{
     \"name\": \"Pay down liabilities by 100\",
@@ -60,37 +62,37 @@ curl -sS -f -X POST "$BASE_URL/transactions" \
       { \"direction\": \"debit\",  \"amount\": 100, \"account_id\": \"$LIAB_ID\" }
     ]
   }" | tee "$TX_JSON" | jq .
-echo "----------------------------------------------------------"
+  echo "=============================================================="
 
-# 5 - Get updated balances (expected: Cash 400; Liabilities 100)
-echo "Fetching updated account balances..."
-echo "Cash:"
-CASH_AFTER="$(curl -sS -f "$BASE_URL/accounts/$CASH_ID" | jq .)"
+# 5) Updated balances
+echo
+echo "[5] Checking updated balances (expected: Cash=400, Liabilities=100)..."
+CASH_AFTER=$(curl -s -f "$BASE_URL/accounts/$CASH_ID" | jq .)
+LIAB_AFTER=$(curl -s -f "$BASE_URL/accounts/$LIAB_ID" | jq .)
 echo "$CASH_AFTER"
-echo "Liabilities:"
-LIAB_AFTER="$(curl -sS -f "$BASE_URL/accounts/$LIAB_ID" | jq .)"
 echo "$LIAB_AFTER"
-echo "----------------------------------------------------------"
 
-# 6 - Attempt unbalanced transaction (should fail)
-echo "Creating unbalanced transaction (should fail)..."
+CASH_BAL=$(echo "$CASH_AFTER" | jq -r '.balance')
+LIAB_BAL=$(echo "$LIAB_AFTER" | jq -r '.balance')
+echo
+echo "→ Current balances: Cash=$CASH_BAL, Liabilities=$LIAB_BAL"
+echo "=============================================================="
+
+# 6) Unbalanced transaction
+echo
+echo "[6] Trying an unbalanced transaction (should fail)..."
 set +e
-UNBALANCED_OUT="$(curl -sS -X POST "$BASE_URL/transactions" \
+curl -s -X POST "$BASE_URL/transactions" \
   -H "Content-Type: application/json" \
   -d "{
     \"name\": \"Broken TX\",
     \"entries\": [
-      { \"direction\": \"debit\", \"amount\": 50, \"account_id\": \"$CASH_ID\" },
+      { \"direction\": \"debit\",  \"amount\": 50, \"account_id\": \"$CASH_ID\" },
       { \"direction\": \"credit\", \"amount\": 30, \"account_id\": \"$LIAB_ID\" }
     ]
-  }")"
+  }" | jq . || true
 set -e
-echo "$UNBALANCED_OUT" | jq . || echo "$UNBALANCED_OUT"
-echo "----------------------------------------------------------"
+echo "=============================================================="
 
-# 7 - Post-check
-CASH_BAL="$(echo "$CASH_AFTER" | jq -r '.balance')"
-LIAB_BAL="$(echo "$LIAB_AFTER" | jq -r '.balance')"
-echo "Post-check: expected Cash=400, Liabilities=100 → got Cash=$CASH_BAL, Liabilities=$LIAB_BAL"
-
-echo "All tests executed."
+echo
+echo "All tests finished."
