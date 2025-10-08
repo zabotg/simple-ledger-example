@@ -1,4 +1,5 @@
 import { ValidationError } from './errors';
+import { toDollars } from './utils/money';
 import type { AccountsRepository } from '../domain/accounts/accounts-repository';
 import type { Direction, Account } from '../domain/accounts/accounts-types';
 import type { Entry, Transaction } from '../domain/transactions/transactions-types';
@@ -12,17 +13,17 @@ export const calculateBalanceImpact = (
 };
 
 export const ensureTransactionIsBalanced = (entries: Entry[]): void => {
-  const totalDebits = entries
-    .filter(entry => entry.direction === 'debit')
+  const totalDebits = entries.filter(entry => entry.direction === 'debit')
     .reduce((sum, entry) => sum + entry.amount, 0);
 
-  const totalCredits = entries
-    .filter(entry => entry.direction === 'credit')
+  const totalCredits = entries.filter(entry => entry.direction === 'credit')
     .reduce((sum, entry) => sum + entry.amount, 0);
 
   if (totalDebits !== totalCredits) {
+    const debit = toDollars(totalDebits).toFixed(2);
+    const credit = toDollars(totalCredits).toFixed(2);
     throw new ValidationError(
-      `Unbalanced transaction: total debits (${totalDebits}) != total credits (${totalCredits}).`
+      `Unbalanced transaction: total debits ($${debit}) != total credits ($${credit}).`
     );
   }
 };

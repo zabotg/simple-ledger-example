@@ -36,16 +36,16 @@ describe('Ledger Flow', () => {
     const cash = (await createAccount({ name: 'Cash', direction: 'debit', balance: 200 })).body;
     const food = (await createAccount({ name: 'Food', direction: 'debit', balance: 0 })).body;
 
-    const tx = await postTransaction({
-      name: 'Ifood',
+    const transaction = await postTransaction({
+      name: 'Lunch',
       entries: [
         { direction: 'debit', amount: 50, account_id: food.id },
         { direction: 'credit', amount: 50, account_id: cash.id },
       ],
     });
 
-    expect(tx.status).toBe(201);
-    expect(tx.body).toMatchObject({
+    expect(transaction.status).toBe(201);
+    expect(transaction.body).toMatchObject({
       id: expect.any(String),
       name: 'Lunch',
       entries: [
@@ -61,14 +61,14 @@ describe('Ledger Flow', () => {
   });
 
   it('rejects unbalanced transaction with 400', async () => {
-    const a = (await createAccount({ name: 'A', direction: 'debit' })).body;
-    const b = (await createAccount({ name: 'B', direction: 'credit' })).body;
+    const account_debit = (await createAccount({ name: 'A', direction: 'debit' })).body;
+    const account_credit = (await createAccount({ name: 'B', direction: 'credit' })).body;
 
     const bad = await postTransaction({
       name: 'Test',
       entries: [
-        { direction: 'debit', amount: 100, account_id: a.id },
-        { direction: 'credit', amount: 90, account_id: b.id },
+        { direction: 'debit', amount: 100, account_id: account_debit.id },
+        { direction: 'credit', amount: 90, account_id: account_credit.id },
       ],
     });
 

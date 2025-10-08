@@ -47,15 +47,15 @@ describe('Domain Services (accounts & transactions)', () => {
     });
 
     it('rejects unbalanced transactions and throws ValidationError mapped by app', () => {
-      const a = accounts.create({ direction: 'debit', name: 'A' });
-      const b = accounts.create({ direction: 'credit', name: 'B' });
+      const account_debit = accounts.create({ direction: 'debit', name: 'A' });
+      const account_credit = accounts.create({ direction: 'credit', name: 'B' });
 
       expect(() =>
         transactions.create({
           name: 'Broken',
           entries: [
-            { direction: 'debit', amount: 100, account_id: a.id },
-            { direction: 'credit', amount: 90, account_id: b.id },
+            { direction: 'debit', amount: 100, account_id: account_debit.id },
+            { direction: 'credit', amount: 90, account_id: account_credit.id },
           ],
         })
       ).toThrow(/Unbalanced transaction/i);
